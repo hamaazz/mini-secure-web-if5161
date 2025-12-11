@@ -2,8 +2,9 @@ import os
 import uuid
 import datetime as dt
 import bcrypt
-from functools import wraps
+import random
 
+from functools import wraps
 from flask import (
     Flask, render_template, request, redirect,
     url_for, flash, session, send_from_directory, abort
@@ -23,6 +24,45 @@ app.config["SECRET_KEY"] = "ganti-ini-dengan-secret-yang-lebih-kuat"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(BASE_DIR, "app.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+# --- Session timeout (auto logout setelah idle 5 menit) ---
+
+IDLE_TIMEOUT_MINUTES = 5
+
+@app.before_request
+def check_idle_timeout():
+    # Jangan cek untuk static file
+    if request.endpoint == "static":
+        return
+
+    user_id = session.get("user_id")
+    if not user_id:
+        # Tidak ada user login, tidak perlu cek
+        return
+
+    now = dt.datetime.utcnow()
+    last_active_str = session.get("last_active")
+
+    if last_active_str:
+        try:
+            last_active = dt.datetime.fromisoformat(last_active_str)
+        except ValueError:
+            # Kalau format aneh, anggap sekarang
+            last_active = now
+
+        idle_duration = now - last_active
+        if idle_duration > dt.timedelta(minutes=IDLE_TIMEOUT_MINUTES):
+            # Session kadaluarsa karena idle terlalu lama
+            session.clear()
+            flash(
+                "Anda sudah logout karena tidak aktif lebih dari 5 menit.",
+                "info",
+            )
+            return redirect(url_for("login"))
+
+    # Update timestamp aktivitas terakhir
+    session["last_active"] = now.isoformat()
+
 
 db = SQLAlchemy(app)
 
@@ -135,10 +175,17 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
+        captcha_input = request.form.get("captcha", "").strip()
+
+        # 1. Validasi captcha dulu
+        expected_captcha = session.get("login_captcha_answer")
+        if not expected_captcha or captcha_input != str(expected_captcha):
+            flash("Captcha salah. Silakan coba lagi.", "danger")
+            return redirect(url_for("login"))
 
         user = User.query.filter_by(username=username).first()
 
-        # 1. Kalau user ada, cek apakah sedang dalam masa cooldown
+        # 2. Cek apakah user sedang dalam masa cooldown
         if user and user.lock_until:
             now = dt.datetime.utcnow()
             if now < user.lock_until:
@@ -151,12 +198,12 @@ def login():
                 )
                 return redirect(url_for("login"))
 
-        # 2. Kalau user tidak ada ATAU password salah
+        # 3. Kalau user tidak ada ATAU password salah
         if (not user) or (not bcrypt.checkpw(
             password.encode("utf-8"),
             user.password_hash.encode("utf-8") if user else b""
         )):
-            # Kalau user tidak ada, cukup kasih pesan umum
+            # Kalau user tidak ada, pesan umum
             if not user:
                 flash("Username atau password salah.", "danger")
                 return redirect(url_for("login"))
@@ -182,7 +229,6 @@ def login():
                     "warning",
                 )
             else:
-                # Masih di bawah batas -> beritahu sisa percobaan
                 remaining = attempts_before_lock - user.failed_login_attempts
                 db.session.commit()
                 flash(
@@ -193,7 +239,7 @@ def login():
 
             return redirect(url_for("login"))
 
-        # 3. Kalau password benar -> reset counter & lock
+        # 4. Kalau password benar -> reset counter & lock
         user.failed_login_attempts = 0
         user.lock_until = None
         db.session.commit()
@@ -201,9 +247,14 @@ def login():
         session["user_id"] = user.id
         session["is_admin"] = user.is_admin
         flash("Login berhasil.", "success")
+        if user.is_admin:
+            return redirect(url_for("admin_dashboard"))
         return redirect(url_for("dashboard"))
 
-    return render_template("login.html")
+    # METHOD GET → generate captcha dan kirim ke template
+    captcha_question = generate_captcha("login")
+    return render_template("login.html", captcha_question=captcha_question)
+
 
 
 @app.route("/logout")
@@ -217,6 +268,12 @@ def logout():
 @login_required
 def dashboard():
     user = get_current_user()
+
+    # Admin tidak boleh akses dashboard user biasa
+    if user.is_admin:
+        flash("Admin tidak memiliki dashboard user.", "warning")
+        return redirect(url_for("admin_dashboard"))
+
     user_files = UserFile.query.filter_by(
         user_id=user.id
     ).order_by(UserFile.uploaded_at.desc()).all()
@@ -227,6 +284,11 @@ def dashboard():
 @login_required
 def upload():
     user = get_current_user()
+
+    # Admin tidak diizinkan upload file
+    if user.is_admin:
+        flash("Admin tidak diperbolehkan mengunggah file.", "warning")
+        return redirect(url_for("admin_dashboard"))
 
     if request.method == "POST":
         description = request.form.get("description", "").strip()
@@ -375,6 +437,16 @@ def admin_delete_user(user_id):
 
     flash(f"User '{user.username}' dan semua file-nya berhasil dihapus.", "success")
     return redirect(url_for("admin_dashboard"))
+
+#Tambah fungsi helper generate captcha
+def generate_captcha(key_prefix: str) -> str:
+    """Generate captcha sederhana dan simpan jawabannya di session."""
+    a = random.randint(1, 9)
+    b = random.randint(1, 9)
+    answer = a + b
+    session[f"{key_prefix}_captcha_answer"] = str(answer)
+    return f"{a} + {b} = ?"
+
 
 
 if __name__ == "__main__":
