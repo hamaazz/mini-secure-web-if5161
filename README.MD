@@ -50,8 +50,7 @@ Akun Admin default dibuat otomatis:
 username: admin
 password: admin123
 
-
-> Kamu bisa mengganti password di file `app.py`.
+> bisa mengganti password di file `app.py`.
 
 ---
 
@@ -88,28 +87,23 @@ miniweb_security/
 ├── uploads/ ← otomatis dibuat, berisi file per-user
 └── venv/ ← environment lokal (tidak ikut Git)
 
-
 ---
 
 ## 🚀 Cara Menjalankan
 
 ### 1. Clone repository
 ```bash
-git clone https://github.com/USERNAME/mini-secure-web-if5161.git
+git clone https://github.com/hamaazz/mini-secure-web-if5161.git
 cd mini-secure-web-if5161
 
 2. Buat virtual environment
 python -m venv venv
 
 Aktifkan:
-
 Windows:
-
 venv\Scripts\activate
 
-
 Mac/Linux:
-
 source venv/bin/activate
 
 3. Install dependencies
@@ -119,31 +113,20 @@ pip install -r requirements.txt
 python app.py
 
 
-Akses di browser:
-
-http://127.0.0.1:5000
+Akses di browser: http://127.0.0.1:5000
 
 🖼️ Screenshot (Optional)
 
 Tambahkan screenshot aplikasi kamu di bagian ini:
-
 ![Login Page](screenshots/login.png)
 ![Dashboard](screenshots/dashboard.png)
 ![Admin Panel](screenshots/admin.png)
 
-
-Kamu bisa membuat folder /screenshots agar lebih rapi.
-
 🔒 Catatan Security
 
-Password tidak pernah disimpan dalam plaintext.
-
-File upload disimpan dengan nama aman (uuid_originalname).
-
-Setiap user memiliki folder file sendiri → mencegah akses tidak sah.
-
-Admin diperiksa melalui decorator @admin_required.
-
-Semua aksi sensitif (delete user/file) memakai method POST + konfirmasi.
-
-SweetAlert2 digunakan agar user tidak salah klik.
+-Password tidak pernah disimpan dalam plaintext.
+-File upload disimpan dengan nama aman (uuid_originalname).
+-Setiap user memiliki folder file sendiri → mencegah akses tidak sah.
+-Admin diperiksa melalui decorator @admin_required.
+-Semua aksi sensitif (delete user/file) memakai method POST + konfirmasi.
+-SweetAlert2 digunakan agar user tidak salah klik.
