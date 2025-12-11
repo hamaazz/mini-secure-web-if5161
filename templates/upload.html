@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <h3>Upload File</h3>
+    <form method="post" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label class="form-label">Deskripsi / Komentar</label>
+        <textarea name="description" class="form-control" rows="3"></textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Pilih File</label>
+        <input type="file" name="file" class="form-control" required>
+        <div class="form-text">Diizinkan: txt, pdf, png, jpg, jpeg, gif.</div>
+      </div>
+      <button type="submit" class="btn btn-primary">Upload</button>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Kembali</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+
+# Uploaded files
+uploads/
+
+# SQLite database
+app.db
+
+# VSCode
+.vscode/
+
+# Environment settings
+*.env

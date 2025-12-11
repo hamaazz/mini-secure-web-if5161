@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="mb-3">Dashboard</h3>
+<p>Selamat datang, <strong>{{ user.username }}</strong>.</p>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5>Daftar File Anda</h5>
+  <a href="{{ url_for('upload') }}" class="btn btn-success">+ Upload File Baru</a>
+</div>
+
+{% if files %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table id="filesTable" class="table table-striped table-bordered align-middle">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nama File</th>
+            <th>Deskripsi</th>
+            <th>Waktu Upload</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for f in files %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td style="word-break: break-all;">{{ f.original_filename }}</td>
+            <td>{{ f.description or "-" }}</td>
+            <td>{{ f.uploaded_at.strftime("%d %b %Y %H:%M") }}</td>
+            <td>
+            <!-- Tombol Download -->
+            <a href="{{ url_for('download', file_id=f.id) }}" class="btn btn-sm btn-primary position-relative me-1"
+                data-bs-toggle="tooltip" data-bs-title="Download">
+                <i class="bi bi-download"></i>
+            </a>
+            
+            <!-- Tombol Delete (POST + konfirmasi) -->
+            <form method="post" action="{{ url_for('delete_file', file_id=f.id) }}" style="display:inline" class="delete-form">
+                <button type="submit" class="btn btn-sm btn-danger position-relative" data-bs-toggle="tooltip"
+                    data-bs-title="Hapus">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info">Belum ada file yang di-upload.</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  $(document).ready(function () {
+    // Aktifkan DataTables
+    $('#filesTable').DataTable({
+      language: {
+        search: "Cari:",
+        lengthMenu: "Tampilkan _MENU_ baris",
+        info: "Menampilkan _START_ - _END_ dari _TOTAL_ data",
+        infoEmpty: "Tidak ada data",
+        zeroRecords: "Data tidak ditemukan",
+        paginate: {
+          first: "Pertama",
+          last: "Terakhir",
+          next: "Berikutnya",
+          previous: "Sebelumnya"
+        }
+      },
+      order: [[3, "desc"]]
+    });
+
+    // Intercept submit form delete, tampilkan SweetAlert2
+    $('.delete-form').on('submit', function(e) {
+      e.preventDefault();  // cegah submit langsung
+
+      const form = this;   // simpan referensi form
+
+      Swal.fire({
+        title: 'Yakin hapus?',
+        text: 'File ini akan dihapus permanen.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, hapus',
+        cancelButtonText: 'Batal'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          form.submit();  // baru submit ke server kalau user setuju
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}
