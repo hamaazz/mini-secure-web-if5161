@@ -81,19 +81,23 @@ document.addEventListener("DOMContentLoaded", function() {
   {% if messages %}
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      {% for category, message in messages %}
-      Swal.fire({
-        icon: '{{ "error" if category == "danger" else category }}',
-        title: {% if category == 'success' %}'Berhasil'
-               {% elif category == 'danger' %}'Terjadi Kesalahan'
-               {% elif category == 'warning' %}'Peringatan'
-               {% else %}'Informasi'
-               {% endif %},
-        text: {{ message|tojson }},
-        timer: 2500,
-        showConfirmButton: false
-      });
-      {% endfor %}
+      const flashMessages = {{ messages|tojson }};
+      if (Array.isArray(flashMessages)) {
+        flashMessages.forEach(function(item) {
+          const category = item[0];
+          const message = item[1];
+          Swal.fire({
+            icon: category === 'danger' ? 'error' : category,
+            title: category === 'success' ? 'Berhasil'
+                   : category === 'danger' ? 'Terjadi Kesalahan'
+                   : category === 'warning' ? 'Peringatan'
+                   : 'Informasi',
+            text: message,
+            timer: 2500,
+            showConfirmButton: false
+          });
+        });
+      }
     });
   </script>
   {% endif %}
