@@ -20,7 +20,8 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif"}
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "ganti-ini-dengan-secret-yang-lebih-kuat"
+#app.config["SECRET_KEY"] = "ganti-ini-dengan-secret-yang-lebih-kuat"
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "ganti-ini-dengan-secret-yang-lebih-kuat")
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(BASE_DIR, "app.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
@@ -475,4 +476,5 @@ if __name__ == "__main__":
             print(f"Username: {admin_username}")
             print(f"Password: {admin_password}")
 
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
