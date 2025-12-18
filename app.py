@@ -12,6 +12,9 @@ from flask import (
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 
+# ===== TAMBAHAN BARU: Import Flask-WTF untuk CSRF =====
+from flask_wtf.csrf import CSRFProtect
+
 # --- Konfigurasi dasar ---
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
@@ -20,11 +23,13 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif"}
 
 app = Flask(__name__)
-#app.config["SECRET_KEY"] = "ganti-ini-dengan-secret-yang-lebih-kuat"
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "ganti-ini-dengan-secret-yang-lebih-kuat")
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(BASE_DIR, "app.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+# ===== TAMBAHAN BARU: Enable CSRF Protection =====
+csrf = CSRFProtect(app)
 
 # --- Session timeout (auto logout setelah idle 5 menit) ---
 

@@ -38,6 +38,9 @@
             
             <!-- Tombol Delete (POST + konfirmasi) -->
             <form method="post" action="{{ url_for('delete_file', file_id=f.id) }}" style="display:inline" class="delete-form">
+                <!-- ===== TAMBAHAN BARU: CSRF Token ===== -->
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
                 <button type="submit" class="btn btn-sm btn-danger position-relative" data-bs-toggle="tooltip"
                     data-bs-title="Hapus">
                     <i class="bi bi-trash"></i>
