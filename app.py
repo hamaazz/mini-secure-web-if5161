@@ -3,6 +3,7 @@ import uuid
 import datetime as dt
 import bcrypt
 import random
+import re
 
 from functools import wraps
 from flask import (
@@ -28,10 +29,16 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(BASE_DIR, "a
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
+# ===== File Upload Size Limit =====
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5MB maksimal
+
 # ===== Session Security Configuration =====
-app.config["SESSION_COOKIE_SECURE"] = True       # Cookie hanya dikirim via HTTPS
-app.config["SESSION_COOKIE_HTTPONLY"] = True     # Cookie tidak bisa diakses JavaScript (XSS protection)
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"    # CSRF protection (Lax/Strict)
+# SECURE flag: True untuk production (HTTPS), False untuk development (HTTP localhost)
+# Gunakan environment variable untuk override: export FLASK_ENV=development
+IS_DEVELOPMENT = os.environ.get("FLASK_ENV") == "development"
+app.config["SESSION_COOKIE_SECURE"] = not IS_DEVELOPMENT  # False di dev, True di production
+app.config["SESSION_COOKIE_HTTPONLY"] = True              # Cookie tidak bisa diakses JavaScript (XSS protection)
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"             # CSRF protection (Lax/Strict)
 
 # ===== TAMBAHAN BARU: Enable CSRF Protection =====
 csrf = CSRFProtect(app)
@@ -109,6 +116,56 @@ def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def validate_username(username: str) -> tuple[bool, str]:
+    """
+    Validasi username dengan rules:
+    - Minimal 3 karakter, maksimal 20 karakter
+    - Hanya alphanumeric dan underscore
+    - Tidak boleh dimulai dengan angka
+
+    Returns: (is_valid, error_message)
+    """
+    if len(username) < 3:
+        return False, "Username minimal 3 karakter."
+
+    if len(username) > 20:
+        return False, "Username maksimal 20 karakter."
+
+    if not re.match(r"^[A-Za-z][A-Za-z0-9_]*$", username):
+        return False, "Username harus dimulai dengan huruf dan hanya boleh mengandung huruf, angka, dan underscore."
+
+    return True, ""
+
+
+def validate_password(password: str) -> tuple[bool, str]:
+    """
+    Validasi password dengan rules:
+    - Minimal 8 karakter
+    - Minimal 1 huruf besar
+    - Minimal 1 huruf kecil
+    - Minimal 1 angka
+    - Minimal 1 karakter spesial (!@#$%^&*()_+-=[]{}|;:,.<>?)
+
+    Returns: (is_valid, error_message)
+    """
+    if len(password) < 8:
+        return False, "Password minimal 8 karakter."
+
+    if not re.search(r"[A-Z]", password):
+        return False, "Password harus mengandung minimal 1 huruf besar (A-Z)."
+
+    if not re.search(r"[a-z]", password):
+        return False, "Password harus mengandung minimal 1 huruf kecil (a-z)."
+
+    if not re.search(r"[0-9]", password):
+        return False, "Password harus mengandung minimal 1 angka (0-9)."
+
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]", password):
+        return False, "Password harus mengandung minimal 1 karakter spesial (!@#$%^&* dll)."
+
+    return True, ""
+
+
 def get_current_user():
     user_id = session.get("user_id")
     if not user_id:
@@ -152,14 +209,29 @@ def register():
         password = request.form.get("password", "").strip()
         confirm = request.form.get("confirm", "").strip()
 
+        # Validasi input tidak boleh kosong
         if not username or not password:
             flash("Username dan password wajib diisi.", "danger")
             return redirect(url_for("register"))
 
+        # Validasi username
+        is_valid_username, username_error = validate_username(username)
+        if not is_valid_username:
+            flash(username_error, "danger")
+            return redirect(url_for("register"))
+
+        # Validasi password
+        is_valid_password, password_error = validate_password(password)
+        if not is_valid_password:
+            flash(password_error, "danger")
+            return redirect(url_for("register"))
+
+        # Validasi konfirmasi password
         if password != confirm:
             flash("Konfirmasi password tidak cocok.", "danger")
             return redirect(url_for("register"))
 
+        # Cek username sudah digunakan
         existing = User.query.filter_by(username=username).first()
         if existing:
             flash("Username sudah digunakan.", "danger")
@@ -449,6 +521,21 @@ def admin_delete_user(user_id):
     flash(f"User '{user.username}' dan semua file-nya berhasil dihapus.", "success")
     return redirect(url_for("admin_dashboard"))
 
+
+# --- Error Handlers ---
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    """
+    Handler untuk error 413 (Request Entity Too Large)
+    Dipicu ketika file upload melebihi MAX_CONTENT_LENGTH
+    """
+    flash("File terlalu besar! Maksimal ukuran file adalah 5MB.", "danger")
+    return redirect(url_for("upload"))
+
+
+# --- Helper Functions ---
+
 #Tambah fungsi helper generate captcha
 def generate_captcha(key_prefix: str) -> str:
     """Generate captcha sederhana dan simpan jawabannya di session."""
@@ -464,9 +551,18 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
 
-        # Buat admin default kalau belum ada
-        admin_username = "admin"
-        admin_password = "admin123"  # Ganti sebelum dipakai beneran
+        # ===== Buat admin default kalau belum ada =====
+        # Ambil dari environment variable, fallback ke default untuk development
+        admin_username = os.environ.get("ADMIN_USERNAME", "admin")
+        admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
+
+        # Warning jika menggunakan default credentials (security risk di production)
+        if admin_password == "admin123":
+            print("\n" + "="*70)
+            print("⚠️  WARNING: Using default admin password!")
+            print("    Set environment variable ADMIN_PASSWORD for production")
+            print("    Example: export ADMIN_PASSWORD=your_strong_password")
+            print("="*70 + "\n")
 
         existing_admin = User.query.filter_by(username=admin_username).first()
         if not existing_admin:
@@ -482,9 +578,14 @@ if __name__ == "__main__":
             )
             db.session.add(admin_user)
             db.session.commit()
-            print("=== Admin default dibuat ===")
-            print(f"Username: {admin_username}")
-            print(f"Password: {admin_password}")
+            print("\n" + "="*70)
+            print("✅ Admin account created successfully!")
+            print(f"   Username: {admin_username}")
+            if admin_password == "admin123":
+                print(f"   Password: {admin_password} (DEFAULT - CHANGE THIS!)")
+            else:
+                print(f"   Password: {'*' * len(admin_password)} (from ADMIN_PASSWORD env var)")
+            print("="*70 + "\n")
 
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
