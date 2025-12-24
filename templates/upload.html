@@ -14,7 +14,12 @@
       <div class="mb-3">
         <label class="form-label">Pilih File</label>
         <input type="file" name="file" class="form-control" required>
-        <div class="form-text">Diizinkan: txt, pdf, png, jpg, jpeg, gif.</div>
+        <div class="form-text">
+          <small>
+            • Tipe file: txt, pdf, png, jpg, jpeg, gif<br>
+            • Maksimal ukuran: <strong>5MB</strong>
+          </small>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary">Upload</button>
       <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Kembali</a>
