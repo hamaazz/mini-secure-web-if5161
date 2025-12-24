@@ -467,9 +467,18 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
 
-        # Buat admin default kalau belum ada
-        admin_username = "admin"
-        admin_password = "admin123"  # Ganti sebelum dipakai beneran
+        # ===== Buat admin default kalau belum ada =====
+        # Ambil dari environment variable, fallback ke default untuk development
+        admin_username = os.environ.get("ADMIN_USERNAME", "admin")
+        admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
+
+        # Warning jika menggunakan default credentials (security risk di production)
+        if admin_password == "admin123":
+            print("\n" + "="*70)
+            print("⚠️  WARNING: Using default admin password!")
+            print("    Set environment variable ADMIN_PASSWORD for production")
+            print("    Example: export ADMIN_PASSWORD=your_strong_password")
+            print("="*70 + "\n")
 
         existing_admin = User.query.filter_by(username=admin_username).first()
         if not existing_admin:
@@ -485,9 +494,14 @@ if __name__ == "__main__":
             )
             db.session.add(admin_user)
             db.session.commit()
-            print("=== Admin default dibuat ===")
-            print(f"Username: {admin_username}")
-            print(f"Password: {admin_password}")
+            print("\n" + "="*70)
+            print("✅ Admin account created successfully!")
+            print(f"   Username: {admin_username}")
+            if admin_password == "admin123":
+                print(f"   Password: {admin_password} (DEFAULT - CHANGE THIS!)")
+            else:
+                print(f"   Password: {'*' * len(admin_password)} (from ADMIN_PASSWORD env var)")
+            print("="*70 + "\n")
 
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
