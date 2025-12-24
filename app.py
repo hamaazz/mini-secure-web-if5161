@@ -28,6 +28,11 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(BASE_DIR, "a
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
+# ===== Session Security Configuration =====
+app.config["SESSION_COOKIE_SECURE"] = True       # Cookie hanya dikirim via HTTPS
+app.config["SESSION_COOKIE_HTTPONLY"] = True     # Cookie tidak bisa diakses JavaScript (XSS protection)
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"    # CSRF protection (Lax/Strict)
+
 # ===== TAMBAHAN BARU: Enable CSRF Protection =====
 csrf = CSRFProtect(app)
 
