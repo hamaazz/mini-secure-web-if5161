@@ -3,6 +3,7 @@ import uuid
 import datetime as dt
 import bcrypt
 import random
+import re
 
 from functools import wraps
 from flask import (
@@ -112,6 +113,56 @@ def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def validate_username(username: str) -> tuple[bool, str]:
+    """
+    Validasi username dengan rules:
+    - Minimal 3 karakter, maksimal 20 karakter
+    - Hanya alphanumeric dan underscore
+    - Tidak boleh dimulai dengan angka
+
+    Returns: (is_valid, error_message)
+    """
+    if len(username) < 3:
+        return False, "Username minimal 3 karakter."
+
+    if len(username) > 20:
+        return False, "Username maksimal 20 karakter."
+
+    if not re.match(r"^[A-Za-z][A-Za-z0-9_]*$", username):
+        return False, "Username harus dimulai dengan huruf dan hanya boleh mengandung huruf, angka, dan underscore."
+
+    return True, ""
+
+
+def validate_password(password: str) -> tuple[bool, str]:
+    """
+    Validasi password dengan rules:
+    - Minimal 8 karakter
+    - Minimal 1 huruf besar
+    - Minimal 1 huruf kecil
+    - Minimal 1 angka
+    - Minimal 1 karakter spesial (!@#$%^&*()_+-=[]{}|;:,.<>?)
+
+    Returns: (is_valid, error_message)
+    """
+    if len(password) < 8:
+        return False, "Password minimal 8 karakter."
+
+    if not re.search(r"[A-Z]", password):
+        return False, "Password harus mengandung minimal 1 huruf besar (A-Z)."
+
+    if not re.search(r"[a-z]", password):
+        return False, "Password harus mengandung minimal 1 huruf kecil (a-z)."
+
+    if not re.search(r"[0-9]", password):
+        return False, "Password harus mengandung minimal 1 angka (0-9)."
+
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]", password):
+        return False, "Password harus mengandung minimal 1 karakter spesial (!@#$%^&* dll)."
+
+    return True, ""
+
+
 def get_current_user():
     user_id = session.get("user_id")
     if not user_id:
@@ -155,14 +206,29 @@ def register():
         password = request.form.get("password", "").strip()
         confirm = request.form.get("confirm", "").strip()
 
+        # Validasi input tidak boleh kosong
         if not username or not password:
             flash("Username dan password wajib diisi.", "danger")
             return redirect(url_for("register"))
 
+        # Validasi username
+        is_valid_username, username_error = validate_username(username)
+        if not is_valid_username:
+            flash(username_error, "danger")
+            return redirect(url_for("register"))
+
+        # Validasi password
+        is_valid_password, password_error = validate_password(password)
+        if not is_valid_password:
+            flash(password_error, "danger")
+            return redirect(url_for("register"))
+
+        # Validasi konfirmasi password
         if password != confirm:
             flash("Konfirmasi password tidak cocok.", "danger")
             return redirect(url_for("register"))
 
+        # Cek username sudah digunakan
         existing = User.query.filter_by(username=username).first()
         if existing:
             flash("Username sudah digunakan.", "danger")
