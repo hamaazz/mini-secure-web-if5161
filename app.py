@@ -29,9 +29,12 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # ===== Session Security Configuration =====
-app.config["SESSION_COOKIE_SECURE"] = True       # Cookie hanya dikirim via HTTPS
-app.config["SESSION_COOKIE_HTTPONLY"] = True     # Cookie tidak bisa diakses JavaScript (XSS protection)
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"    # CSRF protection (Lax/Strict)
+# SECURE flag: True untuk production (HTTPS), False untuk development (HTTP localhost)
+# Gunakan environment variable untuk override: export FLASK_ENV=development
+IS_DEVELOPMENT = os.environ.get("FLASK_ENV") == "development"
+app.config["SESSION_COOKIE_SECURE"] = not IS_DEVELOPMENT  # False di dev, True di production
+app.config["SESSION_COOKIE_HTTPONLY"] = True              # Cookie tidak bisa diakses JavaScript (XSS protection)
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"             # CSRF protection (Lax/Strict)
 
 # ===== TAMBAHAN BARU: Enable CSRF Protection =====
 csrf = CSRFProtect(app)
