@@ -29,6 +29,9 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(BASE_DIR, "a
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
+# ===== File Upload Size Limit =====
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5MB maksimal
+
 # ===== Session Security Configuration =====
 # SECURE flag: True untuk production (HTTPS), False untuk development (HTTP localhost)
 # Gunakan environment variable untuk override: export FLASK_ENV=development
@@ -517,6 +520,21 @@ def admin_delete_user(user_id):
 
     flash(f"User '{user.username}' dan semua file-nya berhasil dihapus.", "success")
     return redirect(url_for("admin_dashboard"))
+
+
+# --- Error Handlers ---
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    """
+    Handler untuk error 413 (Request Entity Too Large)
+    Dipicu ketika file upload melebihi MAX_CONTENT_LENGTH
+    """
+    flash("File terlalu besar! Maksimal ukuran file adalah 5MB.", "danger")
+    return redirect(url_for("upload"))
+
+
+# --- Helper Functions ---
 
 #Tambah fungsi helper generate captcha
 def generate_captcha(key_prefix: str) -> str:
