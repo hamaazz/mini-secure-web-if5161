@@ -1,6 +1,7 @@
 import os
 import uuid
 import datetime as dt
+from datetime import timezone, timedelta
 import bcrypt
 import random
 import re
@@ -15,6 +16,10 @@ from werkzeug.utils import secure_filename
 
 # ===== TAMBAHAN BARU: Import Flask-WTF untuk CSRF =====
 from flask_wtf.csrf import CSRFProtect
+
+# --- Timezone Configuration ---
+# WIB (Waktu Indonesia Barat) = UTC+7
+WIB = timezone(timedelta(hours=7))
 
 # --- Konfigurasi dasar ---
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -58,7 +63,7 @@ def check_idle_timeout():
         # Tidak ada user login, tidak perlu cek
         return
 
-    now = dt.datetime.utcnow()
+    now = dt.datetime.now(WIB).replace(tzinfo=None)
     last_active_str = session.get("last_active")
 
     if last_active_str:
@@ -69,7 +74,7 @@ def check_idle_timeout():
             last_active = now
 
         idle_duration = now - last_active
-        if idle_duration > dt.timedelta(minutes=IDLE_TIMEOUT_MINUTES):
+        if idle_duration > timedelta(minutes=IDLE_TIMEOUT_MINUTES):
             # Session kadaluarsa karena idle terlalu lama
             session.clear()
             flash(
@@ -106,7 +111,7 @@ class UserFile(db.Model):
     original_filename = db.Column(db.String(255), nullable=False)
     stored_filename = db.Column(db.String(255), nullable=False)  # nama file di server
     mimetype = db.Column(db.String(100))
-    uploaded_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+    uploaded_at = db.Column(db.DateTime, default=lambda: dt.datetime.now(WIB).replace(tzinfo=None))
     description = db.Column(db.Text)  # contoh data teks/komentar
 
 
@@ -270,7 +275,7 @@ def login():
 
         # 2. Cek apakah user sedang dalam masa cooldown
         if user and user.lock_until:
-            now = dt.datetime.utcnow()
+            now = dt.datetime.now(WIB).replace(tzinfo=None)
             if now < user.lock_until:
                 remaining = user.lock_until - now
                 remaining_minutes = int(remaining.total_seconds() // 60) or 1
@@ -295,7 +300,7 @@ def login():
             user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
             attempts_before_lock = 3  # percobaan salah yang diizinkan
             wait_minutes = 0
-            now = dt.datetime.utcnow()
+            now = dt.datetime.now(WIB).replace(tzinfo=None)
 
             if user.failed_login_attempts >= attempts_before_lock:
                 # Salah ke-3 -> 5 menit
