@@ -1,422 +1,302 @@
 # Mini Secure Web – Flask Application
 
-A mini web application built using **Python Flask**, designed to demonstrate essential security features for user management, file handling, and administrative control.
-Project ini dibuat sebagai tugas mata kuliah/pembelajaran terkait web security & backend development (IF5161).
+Aplikasi web sederhana yang dibuat dengan Flask untuk tugas IF5161 (Web Security).
+Fokus utama: implementasi fitur security dasar yang wajib ada di web application.
 
 ---
 
-## ⭐ Fitur Utama
+## Fitur Utama
 
-### 🔐 1. User Management
-- **Register** dengan validasi username & password yang ketat
-  - Username: 3-20 karakter, alphanumeric + underscore, dimulai dengan huruf
-  - Password: Minimal 8 karakter, harus ada huruf besar, huruf kecil, angka, dan karakter spesial
-- **Login** dengan CAPTCHA dan rate limiting
-  - Password di-hash menggunakan **bcrypt**
-  - Cooldown otomatis setelah 3x gagal login (exponential backoff: 5, 10, 20 menit)
-- **Session** aman dengan auto-logout setelah idle 5 menit
-- **Cookie Security**: HttpOnly, Secure (HTTPS), SameSite=Lax
+### 1. User Management
+- **Register & Login**
+  - Username minimal 3 karakter, harus dimulai huruf, cuma boleh alphanumeric + underscore
+  - Password minimal 8 karakter, wajib ada: huruf besar, huruf kecil, angka, karakter spesial
+  - Password di-hash pakai bcrypt (gak disimpan plain text)
+- **Session Management**
+  - Auto-logout kalau gak ada aktivitas 5 menit
+  - Cookie secure: HttpOnly, Secure (HTTPS), SameSite=Lax
+- **Login Protection**
+  - Ada CAPTCHA (math sederhana)
+  - Rate limiting: salah 3x login → cooldown 5 menit, terus nambah eksponensial
 
----
+### 2. Upload & Download File
+- User bisa upload file dengan deskripsi/komentar
+- Tipe file yang diizinkan: txt, pdf, png, jpg, jpeg, gif
+- Maksimal ukuran: **5MB**
+- File disimpan per-user (di folder `uploads/<user_id>/`)
+- User cuma bisa download file milik sendiri
+- Admin bisa download semua file
 
-### 📤 2. Data Submission & Upload File (Secure Upload)
-- Form untuk submit **deskripsi/komentar** pada setiap file
-- Sanitasi nama file menggunakan `secure_filename`
-- Validasi ekstensi file (whitelist): `txt, pdf, png, jpg, jpeg, gif`
-- **Batas ukuran file: maksimal 5MB**
-- Penyimpanan file per-user: `uploads/<user_id>/`
-- Mencegah akses silang (user A tidak bisa mengakses file user B)
+### 3. Admin Panel
+Admin punya akses khusus:
+- Lihat semua user yang terdaftar
+- Hapus user (termasuk semua filenya)
+- Lihat & hapus file dari user mana pun
+- Lihat statistik (total user & total file)
 
----
-
-### 📥 3. Download File
-- User hanya bisa mengunduh file miliknya
-- Admin dapat mengunduh semua file
-- **Authorization check** untuk mencegah unauthorized access
-
----
-
-### 🗑️ 4. Delete File
-- User dapat menghapus file miliknya
-- Admin dapat menghapus file siapa pun
-- Konfirmasi delete menggunakan **SweetAlert2**
+**Login Admin:**
+- Default: `admin` / `admin123` (development)
+- Production: set via environment variable `ADMIN_USERNAME` & `ADMIN_PASSWORD`
+- Aplikasi kasih warning kalau masih pakai password default
 
 ---
 
-### 🛡️ 5. Admin Panel
-Admin dapat:
-- Melihat seluruh user
-- Menghapus user (beserta semua file miliknya)
-- Melihat seluruh file dari semua user
-- Menghapus file dari user mana pun
-- Melihat statistik total user & total file
-- Akses eksklusif: menu admin hanya muncul untuk akun admin
+## Aspek Security yang Diterapkan
 
-**Akun Admin** dibuat otomatis dari environment variable:
-```bash
-# Default (untuk development)
-Username: admin
-Password: admin123
+Sesuai requirement assignment, aplikasi ini sudah implement:
 
-# Production (set via environment variable)
-export ADMIN_USERNAME=your_admin_name
-export ADMIN_PASSWORD=your_strong_password
-```
+**1. Password Hashing**
+- Pakai bcrypt dengan salt
+- Password gak pernah disimpan dalam bentuk plain text
 
-⚠️ **WARNING**: Aplikasi akan menampilkan peringatan jika menggunakan password default di production!
+**2. CSRF Protection**
+- Semua form POST pakai CSRF token (Flask-WTF)
+- Token auto-validasi setiap submit
 
----
+**3. Input Validation**
+- Username & password divalidasi pakai regex
+- Password policy ketat (length + complexity)
+- File extension whitelist
 
-## 🔒 Fitur Security
+**4. File Upload Sanitization**
+- Nama file di-sanitize pakai `secure_filename()`
+- Validasi extension (whitelist)
+- Size limit 5MB
+- File disimpan di folder terpisah per-user
 
-### ✅ Implementasi OWASP Best Practices
+**5. Access Control**
+- Authorization check di setiap endpoint
+- Decorator `@login_required` & `@admin_required`
+- User A gak bisa akses file user B
 
-| Security Feature | Status | Implementation |
-|-----------------|--------|----------------|
-| **Password Hashing** | ✅ | bcrypt dengan salt |
-| **CSRF Protection** | ✅ | Flask-WTF CSRF tokens di semua form |
-| **Input Validation** | ✅ | Regex validation untuk username & password |
-| **File Upload Sanitization** | ✅ | `secure_filename` + whitelist + size limit |
-| **Access Control** | ✅ | Decorator `@login_required` & `@admin_required` |
-| **Session Security** | ✅ | HttpOnly, Secure, SameSite cookies |
-| **No Hardcoded Secrets** | ✅ | Environment variables untuk credentials |
-| **No Plaintext Passwords** | ✅ | Semua password di-hash dengan bcrypt |
-| **Rate Limiting** | ✅ | Login cooldown dengan exponential backoff |
-| **Session Timeout** | ✅ | Auto-logout setelah 5 menit idle |
+**6. Session Security**
+- `SESSION_COOKIE_SECURE`: Cookie cuma dikirim via HTTPS (production)
+- `SESSION_COOKIE_HTTPONLY`: JavaScript gak bisa akses cookie (anti XSS)
+- `SESSION_COOKIE_SAMESITE`: Lax (extra protection dari CSRF)
 
-### 🔐 Security Features Detail:
+**7. No Hardcoded Secrets**
+- Admin credentials dari environment variable
+- SECRET_KEY dari env variable
+- Warning kalau pakai default credentials
 
-1. **Strong Password Policy**
-   - Minimal 8 karakter
-   - Harus mengandung: huruf besar, huruf kecil, angka, karakter spesial
-
-2. **Username Validation**
-   - Minimal 3 karakter, maksimal 20 karakter
-   - Hanya alphanumeric dan underscore
-   - Harus dimulai dengan huruf
-
-3. **CSRF Protection**
-   - Semua form POST dilindungi dengan CSRF token
-   - Flask-WTF otomatis validasi token
-
-4. **Session Security**
-   - `SESSION_COOKIE_SECURE`: Cookie hanya dikirim via HTTPS (production)
-   - `SESSION_COOKIE_HTTPONLY`: Cookie tidak bisa diakses JavaScript (XSS protection)
-   - `SESSION_COOKIE_SAMESITE`: Lax (CSRF additional layer)
-
-5. **File Upload Security**
-   - Extension whitelist
-   - Filename sanitization
-   - Size limit: 5MB maximum
-   - Per-user folder isolation
-
-6. **Authentication Security**
-   - CAPTCHA pada login
-   - Rate limiting dengan cooldown
-   - Session timeout
-   - bcrypt password hashing
+**8. Rate Limiting**
+- Login dibatasi: 3x salah → cooldown
+- Cooldown makin lama (exponential backoff: 5, 10, 20 menit)
 
 ---
 
-## 🧰 Teknologi yang Digunakan
+## Teknologi
 
-| Teknologi | Versi | Keterangan |
-|----------|-------|------------|
-| **Python** | 3.x | Programming language |
-| **Flask** | 3.0.0 | Backend web framework |
-| **Flask-SQLAlchemy** | 3.1.1 | ORM untuk SQLite |
-| **Flask-WTF** | 1.2.1 | CSRF protection |
-| **bcrypt** | 4.1.2 | Password hashing |
-| **Werkzeug** | 3.0.1 | WSGI utilities & secure filename |
-| **SQLite** | - | Database lokal |
-| **Bootstrap 5** | - | UI styling |
-| **Bootstrap Icons** | - | Icon tombol aksi |
-| **DataTables.js** | - | Tabel dinamis (search, sort, pagination) |
-| **SweetAlert2** | - | Pop-up modern (notifikasi & konfirmasi) |
-| **Gunicorn** | 21.2.0 | WSGI HTTP Server (production) |
+- **Backend:** Flask 3.0.0, Flask-SQLAlchemy 3.1.1
+- **Database:** SQLite (lokal)
+- **Security:** bcrypt 4.1.2, Flask-WTF 1.2.1 (CSRF)
+- **Frontend:** Bootstrap 5, DataTables.js, SweetAlert2
+- **Deployment:** Gunicorn 21.2.0
 
 ---
 
-## 📂 Struktur Folder
+## Cara Menjalankan
 
-```
-mini-secure-web-if5161/
-│
-├── app.py                  # Main application file
-├── requirements.txt        # Python dependencies
-├── .gitignore             # Git ignore rules
-├── README.MD              # This file
-├── Procfile               # Deployment config (Heroku/Render)
-├── render.yaml            # Render.com deployment config
-│
-├── templates/             # Jinja2 HTML templates
-│   ├── base.html         # Base template with navbar
-│   ├── login.html        # Login page with CAPTCHA
-│   ├── register.html     # Registration with validation hints
-│   ├── dashboard.html    # User dashboard
-│   ├── upload.html       # File upload page
-│   └── admin_dashboard.html  # Admin panel
-│
-├── uploads/              # User uploaded files (auto-created)
-│   └── <user_id>/        # Per-user folders
-│
-├── app.db                # SQLite database (auto-created)
-└── venv/                 # Virtual environment (not in Git)
-```
+### 1. Clone & Setup
 
----
-
-## 🚀 Cara Menjalankan
-
-### 1. Clone repository
 ```bash
 git clone https://github.com/hamaazz/mini-secure-web-if5161.git
 cd mini-secure-web-if5161
 ```
 
-### 2. Buat virtual environment
+### 2. Virtual Environment
+
+**Buat venv:**
 ```bash
 python -m venv venv
 ```
 
 **Aktifkan:**
+- Windows: `venv\Scripts\activate`
+- Mac/Linux: `source venv/bin/activate`
 
-**Windows:**
-```bash
-venv\Scripts\activate
-```
+### 3. Install Dependencies
 
-**Mac/Linux:**
-```bash
-source venv/bin/activate
-```
-
-### 3. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Set environment variables (opsional, untuk production)
+### 4. Set Environment Variables (opsional)
 
-**Windows PowerShell:**
-```powershell
-$env:FLASK_ENV="production"
-$env:SECRET_KEY="your-very-secret-key-here"
-$env:ADMIN_USERNAME="superadmin"
-$env:ADMIN_PASSWORD="YourStr0ng@Password!"
-```
-
-**Linux/Mac:**
-```bash
-export FLASK_ENV=production
-export SECRET_KEY=your-very-secret-key-here
-export ADMIN_USERNAME=superadmin
-export ADMIN_PASSWORD=YourStr0ng@Password!
-```
-
-**Untuk development (localhost HTTP):**
+**Development (localhost HTTP):**
 ```bash
 # Windows
 $env:FLASK_ENV="development"
 
-# Linux/Mac
+# Mac/Linux
 export FLASK_ENV=development
 ```
 
-### 5. Jalankan aplikasi
+**Production (HTTPS):**
+```bash
+# Windows
+$env:FLASK_ENV="production"
+$env:SECRET_KEY="your-random-secret-key"
+$env:ADMIN_PASSWORD="YourStr0ngP@ss!"
+
+# Mac/Linux
+export FLASK_ENV=production
+export SECRET_KEY=your-random-secret-key
+export ADMIN_PASSWORD=YourStr0ngP@ss!
+```
+
+> **Note:** Kalau gak set `FLASK_ENV=development`, cookie Secure bakal aktif dan butuh HTTPS. Di localhost HTTP bakalan gak bisa login.
+
+### 5. Jalankan
+
 ```bash
 python app.py
 ```
 
-Akses di browser: **http://127.0.0.1:5000**
+Buka browser: **http://127.0.0.1:5000**
 
 ---
 
-## 🧪 Testing
+## Testing
 
-### Test User Registration
-1. Akses halaman Register
-2. Coba username: `ab` → Harus error (minimal 3 karakter)
-3. Coba password: `weak` → Harus error (tidak memenuhi policy)
-4. Gunakan username valid & password kuat → Berhasil register
+### Test Register
+1. Coba username `ab` → error (minimal 3 karakter)
+2. Coba password `weak` → error (gak memenuhi policy)
+3. Pakai password kuat misal `Test123!@#` → berhasil
 
 ### Test Login Security
-1. Login dengan password salah 3x → Akun ter-cooldown 5 menit
-2. Login tanpa isi CAPTCHA → Harus error
-3. Login dengan credentials benar → Berhasil masuk
-
-### Test Session Timeout
-1. Login berhasil
-2. Diamkan browser selama 6 menit (jangan klik apa-apa)
-3. Refresh page → Auto-logout dengan pesan "tidak aktif lebih dari 5 menit"
+1. Login salah 3x → kena cooldown 5 menit
+2. Captcha salah → gak bisa login
+3. Login benar → masuk dashboard
 
 ### Test File Upload
-1. Upload file < 5MB → Berhasil
-2. Upload file > 5MB → Error "File terlalu besar!"
-3. Upload file dengan extension `.exe` → Error "Tipe file tidak diizinkan"
+1. Upload file < 5MB → berhasil
+2. Upload file > 5MB → error "File terlalu besar!"
+3. Upload file `.exe` → error "Tipe file tidak diizinkan"
 
 ### Test Authorization
-1. Login sebagai user A, upload file
-2. Logout, login sebagai user B
-3. Coba akses file user A via direct URL → Harus error 403 Forbidden
+1. Login user A, upload file
+2. Logout, login user B
+3. Coba akses file user A via URL → error 403 Forbidden
 
 ---
 
-## 🔧 Environment Variables
+## Deployment ke Render.com
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `FLASK_ENV` | `production` | `development` atau `production` |
-| `SECRET_KEY` | (default) | Secret key untuk Flask session |
-| `ADMIN_USERNAME` | `admin` | Username admin default |
-| `ADMIN_PASSWORD` | `admin123` | Password admin default ⚠️ |
-| `PORT` | `5000` | Port untuk menjalankan aplikasi |
-
-⚠️ **PENTING untuk Production:**
-- Selalu set `SECRET_KEY` dengan value yang random & kuat
-- Selalu set `ADMIN_PASSWORD` dengan password yang kuat
-- Set `FLASK_ENV=production` untuk enable HTTPS cookies
-
----
-
-## 📝 Assignment Requirements Checklist
-
-### ✅ Fitur Minimal
-
-- [x] **User Management**
-  - [x] Register
-  - [x] Login (password hashed!)
-  - [x] Session handling
-- [x] **Data Submission**
-  - [x] Form untuk submit data (deskripsi/komentar)
-  - [x] Upload file (sanitasi file)
-- [x] **File Download**
-  - [x] User dapat download file
-  - [x] Authorization (user A ≠ user B)
-
-### ✅ Aspek Security
-
-- [x] Password hashing (bcrypt) ✅
-- [x] CSRF protection ✅
-- [x] Input validation ✅
-- [x] File upload sanitization ✅
-- [x] Access control untuk download ✅
-- [x] Tidak boleh hardcoded secrets ✅
-- [x] Tidak menyimpan password plaintext ✅
-- [x] Session harus secure ✅
-
-### ✅ Bonus Features
-
-- [x] Strong password policy
-- [x] Username validation
-- [x] File size limit (5MB)
-- [x] Login rate limiting
-- [x] Session timeout
-- [x] CAPTCHA
-- [x] Admin panel
-
----
-
-## 📚 Documentation
-
-### Database Models
-
-**User Model:**
-- `id`: Primary key
-- `username`: Unique, 3-20 karakter
-- `password_hash`: bcrypt hashed password
-- `is_admin`: Boolean flag
-- `failed_login_attempts`: Counter untuk rate limiting
-- `lock_until`: Timestamp untuk cooldown
-
-**UserFile Model:**
-- `id`: Primary key
-- `user_id`: Foreign key ke User
-- `original_filename`: Nama file asli
-- `stored_filename`: UUID + nama file (di server)
-- `mimetype`: MIME type file
-- `uploaded_at`: Timestamp upload
-- `description`: Deskripsi/komentar user
-
-### API Endpoints
-
-| Route | Method | Auth | Description |
-|-------|--------|------|-------------|
-| `/` | GET | - | Redirect ke login/dashboard |
-| `/register` | GET, POST | - | Halaman registrasi |
-| `/login` | GET, POST | - | Halaman login dengan CAPTCHA |
-| `/logout` | GET | ✅ | Logout user |
-| `/dashboard` | GET | ✅ User | Dashboard user |
-| `/upload` | GET, POST | ✅ User | Upload file |
-| `/download/<id>` | GET | ✅ | Download file (owner/admin) |
-| `/delete/<id>` | POST | ✅ | Delete file (owner/admin) |
-| `/admin` | GET | ✅ Admin | Admin dashboard |
-| `/admin/users/<id>/delete` | POST | ✅ Admin | Delete user |
-
----
-
-## 🎯 Deployment
-
-### Deploy ke Render.com
+### Quick Deploy
 
 1. Push code ke GitHub
-2. Connect repository di Render.com
-3. Set environment variables:
-   - `FLASK_ENV=production`
-   - `SECRET_KEY=<random-secret>`
-   - `ADMIN_PASSWORD=<strong-password>`
-4. Deploy!
+2. Buat account di [render.com](https://render.com)
+3. New → Web Service → Connect repository
+4. Set environment variables:
+   - `FLASK_ENV`: `production`
+   - `SECRET_KEY`: (klik Generate)
+   - `ADMIN_PASSWORD`: (set password kuat)
+5. Deploy!
 
-File `render.yaml` sudah dikonfigurasi dengan benar.
+File `render.yaml` udah include config lengkap.
 
----
+### Environment Variables di Render
 
-## 🔒 Security Notes
-
-### ✅ Yang Sudah Diimplementasi:
-- Password tidak pernah disimpan dalam plaintext
-- File upload disimpan dengan nama aman (UUID + original name)
-- Setiap user memiliki folder file sendiri → mencegah akses tidak sah
-- Admin diperiksa melalui decorator `@admin_required`
-- Semua aksi sensitif (delete user/file) memakai method POST + konfirmasi
-- SweetAlert2 digunakan agar user tidak salah klik
-- CSRF token di semua form POST
-- Session cookie dengan security flags
-- Input validation dengan regex
-- Rate limiting pada login
-- Session timeout otomatis
-- File size limit enforcement
-
-### ⚠️ Catatan untuk Production:
-- Selalu gunakan HTTPS di production
-- Set environment variables untuk secrets
-- Gunakan database yang lebih robust (PostgreSQL, MySQL) untuk production
-- Enable logging & monitoring
-- Regular security audit
-- Backup database secara berkala
+| Variable | Value | Keterangan |
+|----------|-------|------------|
+| `PYTHON_VERSION` | `3.11.0` | Python version |
+| `FLASK_ENV` | `production` | Wajib untuk HTTPS cookies |
+| `SECRET_KEY` | (auto-generate) | Secret key Flask |
+| `ADMIN_PASSWORD` | (strong password) | Jangan pakai default! |
 
 ---
 
-## 👨‍💻 Author
+## Struktur Folder
 
-**Hamzah**
-IF5161 - Web Security & Backend Development
-
----
-
-## 📄 License
-
-Project ini dibuat untuk keperluan pembelajaran.
-
----
-
-## 🙏 Acknowledgments
-
-- Flask Documentation
-- OWASP Security Guidelines
-- Bootstrap Team
-- SweetAlert2 Team
+```
+mini-secure-web-if5161/
+├── app.py                    # Main application
+├── requirements.txt          # Dependencies
+├── render.yaml              # Deployment config
+├── templates/               # HTML templates
+│   ├── base.html
+│   ├── login.html
+│   ├── register.html
+│   ├── dashboard.html
+│   ├── upload.html
+│   └── admin_dashboard.html
+└── uploads/                 # User files (auto-created)
+    └── <user_id>/
+```
 
 ---
 
-**⭐ Happy Coding & Stay Secure! 🔒**
+## Database Schema
+
+**User:**
+- id, username (unique), password_hash, is_admin
+- failed_login_attempts, lock_until (untuk rate limiting)
+
+**UserFile:**
+- id, user_id (FK), original_filename, stored_filename
+- mimetype, uploaded_at, description
+
+---
+
+## Notes
+
+### Security Implementation
+Aplikasi ini udah cover semua requirement security dari assignment:
+- ✅ Password hashing pakai bcrypt
+- ✅ CSRF protection di semua form
+- ✅ Input validation (username & password)
+- ✅ File upload sanitization
+- ✅ Access control (authorization check)
+- ✅ Gak ada hardcoded secrets
+- ✅ Password gak disimpan plain text
+- ✅ Session secure (cookie flags)
+
+### Bonus Features
+Beberapa fitur tambahan yang diimplementasi:
+- Strong password policy dengan complexity requirement
+- Username validation (regex)
+- File size limit (DoS prevention)
+- Login rate limiting (brute force prevention)
+- Session timeout (reduce hijacking risk)
+- CAPTCHA (anti bot)
+- Admin panel (user management)
+
+### Production Tips
+Kalau mau deploy production:
+- Wajib ganti password admin (jangan `admin123`)
+- Set `SECRET_KEY` yang kuat & random
+- Set `FLASK_ENV=production` biar cookie Secure aktif
+- Pakai HTTPS (Render free plan udah include SSL)
+- Free tier Render sleep setelah 15 menit idle
+
+### Limitations
+- SQLite (file-based) → data ilang kalau redeploy di Render
+- Untuk production serius, pakai PostgreSQL
+- Free tier Render ada cold start ~30 detik kalau idle
+
+---
+
+## Troubleshooting
+
+**Q: Gak bisa login di localhost?**
+A: Set `FLASK_ENV=development` karena cookie Secure butuh HTTPS
+
+**Q: Admin password gak work?**
+A: Cek env variable `ADMIN_PASSWORD`. Kalau udah ada admin sebelumnya, hapus `app.db` dulu
+
+**Q: File upload error?**
+A: Cek size file (max 5MB) dan tipe file (cuma txt, pdf, png, jpg, jpeg, gif)
+
+**Q: Deploy Render gagal?**
+A: Cek logs di Render dashboard. Pastikan semua env variable udah di-set
+
+---
+
+## Author
+
+Hamzah - IF5161 Web Security
+
+---
+
+Project ini dibuat untuk keperluan pembelajaran web security & backend development.
