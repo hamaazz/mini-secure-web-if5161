@@ -210,7 +210,6 @@ Buka browser: **http://127.0.0.1:5000**
 mini-secure-web-if5161/
 ├── app.py                    # Main application
 ├── requirements.txt          # Dependencies
-├── render.yaml              # Deployment config
 ├── templates/               # HTML templates
 │   ├── base.html
 │   ├── login.html
