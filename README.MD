@@ -2,9 +2,9 @@
 
 ## 👨‍💻 Anggota Kelompok:
 
-**Jefry Antoni - 23524020**
-**Alit Kesatria Mendala - 23524027**
-**Hamas Fakhrurrozi - 23524032**
+- **Jefry Antoni - 23524020**
+- **Alit Kesatria Mendala - 23524027**
+- **Hamas Fakhrurrozi - 23524032**
 
 Mini Secure Web merupakan aplikasi web sederhana berbasis Python Flask yang dikembangkan sebagai bagian dari tugas mata kuliah Data & Software Security (IF5161).
 Aplikasi ini bertujuan untuk mendemonstrasikan penerapan konsep dasar keamanan web, khususnya pada proses autentikasi pengguna, pengelolaan file, serta kontrol akses berbasis peran (role-based access control).
