@@ -114,7 +114,6 @@ Sesuai requirement assignment, aplikasi ini sudah implement:
 - **Database:** SQLite (lokal)
 - **Security:** bcrypt 4.1.2, Flask-WTF 1.2.1 (CSRF)
 - **Frontend:** Bootstrap 5, DataTables.js, SweetAlert2
-- **Deployment:** Gunicorn 21.2.0
 - **Timezone:** WIB (UTC+7) via Python datetime
 
 ---
@@ -210,39 +209,12 @@ Buka browser: **http://127.0.0.1:5000**
 
 ---
 
-## Deployment ke Render.com
-
-### Quick Deploy
-
-1. Push code ke GitHub
-2. Buat account di [render.com](https://render.com)
-3. New → Web Service → Connect repository
-4. Set environment variables:
-   - `FLASK_ENV`: `production`
-   - `SECRET_KEY`: (klik Generate)
-   - `ADMIN_PASSWORD`: (set password kuat)
-5. Deploy!
-
-File `render.yaml` udah include config lengkap.
-
-### Environment Variables di Render
-
-| Variable | Value | Keterangan |
-|----------|-------|------------|
-| `PYTHON_VERSION` | `3.11.0` | Python version |
-| `FLASK_ENV` | `production` | Wajib untuk HTTPS cookies |
-| `SECRET_KEY` | (auto-generate) | Secret key Flask |
-| `ADMIN_PASSWORD` | (strong password) | Jangan pakai default! |
-
----
-
 ## Struktur Folder
 
 ```
 mini-secure-web-if5161/
 ├── app.py                    # Main application
 ├── requirements.txt          # Dependencies
-├── render.yaml              # Deployment config
 ├── templates/               # HTML templates
 │   ├── base.html
 │   ├── login.html
@@ -369,19 +341,19 @@ Kalau mau deploy production:
 - **Wajib** ganti password admin (jangan `admin123`)
 - Set `SECRET_KEY` yang kuat & random (misal: `openssl rand -hex 32`)
 - Set `FLASK_ENV=production` biar cookie Secure aktif
-- Pakai HTTPS (Render free plan udah include SSL)
-- Free tier Render sleep setelah 15 menit idle (cold start ~30 detik)
-- Kalau butuh database persistent, pakai PostgreSQL (gratis di Render)
+- Pakai HTTPS untuk production deployment
+- Kalau butuh database persistent, gunakan PostgreSQL atau MySQL
+- Gunakan reverse proxy seperti Nginx untuk production
 
 ---
 
 ## Limitations
 
-- **SQLite (file-based)** → data ilang kalau redeploy di Render free tier
-  - Solusi: pakai Render PostgreSQL (gratis)
-- **Free tier Render** ada cold start ~30 detik kalau idle
+- **SQLite (file-based)** → tidak cocok untuk production dengan traffic tinggi
+  - Solusi: migrasi ke PostgreSQL atau MySQL untuk production
 - **Admin tidak bisa upload file** (by design, admin cuma untuk monitoring)
 - **CAPTCHA sederhana** (math) → bisa di-upgrade pakai reCAPTCHA
+- **Session storage** → pakai Flask default session (cookie-based), untuk production bisa pakai Redis
 
 ---
 
@@ -412,9 +384,6 @@ python app.py
 
 **Q: File upload error?**
 A: Cek size file (max 5MB) dan tipe file (cuma txt, pdf, png, jpg, jpeg, gif)
-
-**Q: Deploy Render gagal?**
-A: Cek logs di Render dashboard. Pastikan semua env variable udah di-set
 
 **Q: Waktu upload gak sesuai?**
 A: Aplikasi pakai timezone WIB (UTC+7). Kalau database dibuat sebelum implementasi timezone, hapus `app.db` dan recreate
@@ -501,7 +470,7 @@ Akses /download/<file_id_dari_user_A>
 - [Flask-WTF CSRF Protection](https://flask-wtf.readthedocs.io/en/stable/csrf.html)
 - [bcrypt Password Hashing](https://pypi.org/project/bcrypt/)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [Render Deployment Guide](https://render.com/docs)
+- [SQLAlchemy Documentation](https://docs.sqlalchemy.org/)
 
 ---
 
