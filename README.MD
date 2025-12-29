@@ -1,31 +1,41 @@
-# Mini Secure Web – Flask Application
+# Mini Secure Web Application – Flask Application
 
-A mini web application built using **Python Flask**, designed to demonstrate essential security features for user management, file handling, and administrative control.
-Project ini dibuat sebagai tugas mata kuliah/pembelajaran terkait web security & backend development (IF5161).
+## 👨‍💻 Anggota Kelompok:
+
+**Jefry Antoni - 23524020**
+**Alit Kesatria Mendala - 23524027**
+**Hamas Fakhrurrozi - 23524032**
+
+Mini Secure Web merupakan aplikasi web sederhana berbasis Python Flask yang dikembangkan sebagai bagian dari tugas mata kuliah Data & Software Security (IF5161).
+Aplikasi ini bertujuan untuk mendemonstrasikan penerapan konsep dasar keamanan web, khususnya pada proses autentikasi pengguna, pengelolaan file, serta kontrol akses berbasis peran (role-based access control).
+
+Fokus utama dari proyek ini adalah bagaimana praktik keamanan yang direkomendasikan (best practices) dapat diterapkan secara nyata pada aplikasi web skala kecil.
 
 ---
 
-## ⭐ Fitur Utama
+## ⭐ Fitur Utama Aplikasi
 
-### 🔐 1. User Management
-- **Register** dengan validasi username & password yang ketat
-  - Username: 3-20 karakter, alphanumeric + underscore, dimulai dengan huruf
-  - Password: Minimal 8 karakter, harus ada huruf besar, huruf kecil, angka, dan karakter spesial
-- **Login** dengan CAPTCHA dan rate limiting
-  - Password di-hash menggunakan **bcrypt**
-  - Cooldown otomatis setelah 3x gagal login (exponential backoff: 5, 10, 20 menit)
-- **Session** aman dengan auto-logout setelah idle 5 menit
-- **Cookie Security**: HttpOnly, Secure (HTTPS), SameSite=Lax
+### 🔐 1. Manajemen Pengguna
 
+Aplikasi menyediakan fitur registrasi dan login dengan mekanisme keamanan yang dirancang untuk mencegah penyalahgunaan akun.
+
+- Registrasi pengguna dilengkapi dengan validasi username dan password:
+  - Username terdiri dari 3–20 karakter, hanya mengandung huruf, angka, dan underscore, serta diawali huruf.
+  - Password minimal 8 karakter dan wajib mengandung huruf besar, huruf kecil, angka, serta karakter spesial.
+- Proses login dilengkapi CAPTCHA dan mekanisme pembatasan percobaan login (*rate limiting*).
+- Password tidak pernah disimpan dalam bentuk *plaintext*, melainkan di-hash menggunakan **bcrypt**.
+- Apabila pengguna gagal login sebanyak tiga kali berturut-turut, sistem akan menerapkan *cooldown* secara bertahap (5, 10, hingga 20 menit).
+- Sistem (*session*) dilengkapi *auto-logout* apabila tidak ada aktivitas selama 5 menit.
+- Cookie sesi dikonfigurasi menggunakan atribut keamanan **HttpOnly**, **Secure (HTTPS)**, dan **SameSite=Lax**.
 ---
 
 ### 📤 2. Data Submission & Upload File (Secure Upload)
-- Form untuk submit **deskripsi/komentar** pada setiap file
-- Sanitasi nama file menggunakan `secure_filename`
-- Validasi ekstensi file (whitelist): `txt, pdf, png, jpg, jpeg, gif`
-- **Batas ukuran file: maksimal 5MB**
-- Penyimpanan file per-user: `uploads/<user_id>/`
-- Mencegah akses silang (user A tidak bisa mengakses file user B)
+Pengguna dapat mengunggah file disertai deskripsi atau komentar.
+- Nama file disanitasi menggunakan `secure_filename`.
+- Sistem hanya mengizinkan tipe file tertentu melalui mekanisme *whitelist* (`txt, pdf, png, jpg, jpeg, gif`).
+- Ukuran file dibatasi maksimal **5MB**.
+- File disimpan dalam folder terpisah untuk setiap pengguna (`uploads/<user_id>/`) guna mencegah akses tidak sah antar pengguna.
+- Mekanisme otorisasi diterapkan untuk memastikan pengguna hanya dapat mengakses file miliknya sendiri.
 
 ---
 
@@ -279,44 +289,6 @@ Akses di browser: **http://127.0.0.1:5000**
 
 ---
 
-## 📝 Assignment Requirements Checklist
-
-### ✅ Fitur Minimal
-
-- [x] **User Management**
-  - [x] Register
-  - [x] Login (password hashed!)
-  - [x] Session handling
-- [x] **Data Submission**
-  - [x] Form untuk submit data (deskripsi/komentar)
-  - [x] Upload file (sanitasi file)
-- [x] **File Download**
-  - [x] User dapat download file
-  - [x] Authorization (user A ≠ user B)
-
-### ✅ Aspek Security
-
-- [x] Password hashing (bcrypt) ✅
-- [x] CSRF protection ✅
-- [x] Input validation ✅
-- [x] File upload sanitization ✅
-- [x] Access control untuk download ✅
-- [x] Tidak boleh hardcoded secrets ✅
-- [x] Tidak menyimpan password plaintext ✅
-- [x] Session harus secure ✅
-
-### ✅ Bonus Features
-
-- [x] Strong password policy
-- [x] Username validation
-- [x] File size limit (5MB)
-- [x] Login rate limiting
-- [x] Session timeout
-- [x] CAPTCHA
-- [x] Admin panel
-
----
-
 ## 📚 Documentation
 
 ### Database Models
@@ -355,22 +327,6 @@ Akses di browser: **http://127.0.0.1:5000**
 
 ---
 
-## 🎯 Deployment
-
-### Deploy ke Render.com
-
-1. Push code ke GitHub
-2. Connect repository di Render.com
-3. Set environment variables:
-   - `FLASK_ENV=production`
-   - `SECRET_KEY=<random-secret>`
-   - `ADMIN_PASSWORD=<strong-password>`
-4. Deploy!
-
-File `render.yaml` sudah dikonfigurasi dengan benar.
-
----
-
 ## 🔒 Security Notes
 
 ### ✅ Yang Sudah Diimplementasi:
@@ -387,35 +343,11 @@ File `render.yaml` sudah dikonfigurasi dengan benar.
 - Session timeout otomatis
 - File size limit enforcement
 
-### ⚠️ Catatan untuk Production:
-- Selalu gunakan HTTPS di production
-- Set environment variables untuk secrets
-- Gunakan database yang lebih robust (PostgreSQL, MySQL) untuk production
-- Enable logging & monitoring
-- Regular security audit
-- Backup database secara berkala
-
----
-
-## 👨‍💻 Author
-
-**Hamzah**
-IF5161 - Web Security & Backend Development
-
 ---
 
 ## 📄 License
 
 Project ini dibuat untuk keperluan pembelajaran.
-
----
-
-## 🙏 Acknowledgments
-
-- Flask Documentation
-- OWASP Security Guidelines
-- Bootstrap Team
-- SweetAlert2 Team
 
 ---
 
