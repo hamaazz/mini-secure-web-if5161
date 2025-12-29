@@ -23,14 +23,14 @@ Fokus utama dari proyek ini adalah bagaimana praktik keamanan yang direkomendasi
 - **Register & Login**
   - Username minimal 3 karakter, harus dimulai huruf, cuma boleh alphanumeric + underscore
   - Password minimal 8 karakter, wajib ada: huruf besar, huruf kecil, angka, karakter spesial
-  - Password di-hash pakai bcrypt (gak disimpan plain text)
+  - Password di-hash menggunakan bcrypt (tidak disimpan plain text)
 - **Session Management**
-  - Auto-logout kalau gak ada aktivitas 5 menit
+  - Auto-logout jika tidak ada aktivitas 5 menit
   - Cookie secure: HttpOnly, Secure (HTTPS), SameSite=Lax
   - Timezone WIB (UTC+7) untuk timestamp
 - **Login Protection**
-  - Ada CAPTCHA (math sederhana)
-  - Rate limiting: salah 3x login → cooldown 5 menit, terus nambah eksponensial (5, 10, 20 menit)
+  - CAPTCHA (math sederhana)
+  - Rate limiting: salah 3x login → cooldown 5 menit, eksponensial (5, 10, 20 menit)
 
 ### 2. Upload & Download File
 - User bisa upload file dengan deskripsi/komentar
@@ -38,7 +38,7 @@ Fokus utama dari proyek ini adalah bagaimana praktik keamanan yang direkomendasi
 - Maksimal ukuran: **5MB**
 - Nama file di-sanitize pakai `secure_filename()`
 - File disimpan per-user (di folder `uploads/<user_id>/`)
-- User cuma bisa download file milik sendiri
+- User hanya bisa download file milik sendiri
 - Admin bisa download semua file
 
 ### 3. Admin Panel
@@ -51,17 +51,15 @@ Admin punya akses khusus:
 **Login Admin:**
 - Default: `admin` / `admin123` (development)
 - Production: set via environment variable `ADMIN_USERNAME` & `ADMIN_PASSWORD`
-- Aplikasi kasih warning kalau masih pakai password default
+- Aplikasi memberikan warning jika masih pakai password default
 
 ---
 
 ## Aspek Security yang Diterapkan
 
-Sesuai requirement assignment, aplikasi ini sudah implement:
-
 **1. Password Hashing**
 - Pakai bcrypt dengan salt
-- Password gak pernah disimpan dalam bentuk plain text
+- Password tidak pernah disimpan dalam bentuk plain text
 - Implementasi: `bcrypt.hashpw()` saat register, `bcrypt.checkpw()` saat login
 
 **2. CSRF Protection**
@@ -85,26 +83,22 @@ Sesuai requirement assignment, aplikasi ini sudah implement:
 **5. Access Control**
 - Authorization check di setiap endpoint
 - Decorator `@login_required` & `@admin_required`
-- User A gak bisa akses file user B
-- Implementasi: app.py:181-198 (decorators), cek ownership di download/delete
+- User A tidak bisa akses file user B
 
 **6. Session Security**
 - `SESSION_COOKIE_SECURE`: Cookie cuma dikirim via HTTPS (production)
 - `SESSION_COOKIE_HTTPONLY`: JavaScript gak bisa akses cookie (anti XSS)
 - `SESSION_COOKIE_SAMESITE`: Lax (extra protection dari CSRF)
 - Auto-logout setelah idle 5 menit
-- Implementasi: app.py:40-46 (config), app.py:55-87 (timeout check)
 
 **7. No Hardcoded Secrets**
 - Admin credentials dari environment variable
 - SECRET_KEY dari env variable
-- Warning kalau pakai default credentials
-- Implementasi: app.py:32, app.py:561-570
+- Warning jika menggunakan default credentials
 
 **8. Rate Limiting**
 - Login dibatasi: 3x salah → cooldown
 - Cooldown makin lama (exponential backoff: 5, 10, 20 menit)
-- Implementasi: app.py:276-328 (login route)
 
 ---
 
@@ -119,7 +113,7 @@ Sesuai requirement assignment, aplikasi ini sudah implement:
 
 ---
 
-## Cara Menjalankan
+## Cara Install
 
 ### 1. Clone & Setup
 
@@ -185,13 +179,13 @@ Buka browser: **http://127.0.0.1:5000**
 
 ### Test Register
 1. Coba username `ab` → error (minimal 3 karakter)
-2. Coba username `123test` → error (harus dimulai huruf)
-3. Coba password `weak` → error (gak memenuhi policy)
+2. Coba username `123test` → error (harus dimulai dengan huruf)
+3. Coba password `weak` → error (tidak memenuhi policy)
 4. Pakai password kuat misal `Test123!@#` → berhasil
 
 ### Test Login Security
-1. Login salah 3x → kena cooldown 5 menit
-2. Captcha salah → gak bisa login
+1. Login salah 3x → cooldown 5 menit
+2. Captcha salah → tidak bisa login
 3. Login benar → masuk dashboard
 
 ### Test File Upload
@@ -207,32 +201,6 @@ Buka browser: **http://127.0.0.1:5000**
 ### Test Timezone
 1. Upload file dan cek "Waktu Upload"
 2. Harusnya muncul waktu WIB (UTC+7), bukan UTC
-
----
-
-## Deployment ke Render.com
-
-### Quick Deploy
-
-1. Push code ke GitHub
-2. Buat account di [render.com](https://render.com)
-3. New → Web Service → Connect repository
-4. Set environment variables:
-   - `FLASK_ENV`: `production`
-   - `SECRET_KEY`: (klik Generate)
-   - `ADMIN_PASSWORD`: (set password kuat)
-5. Deploy!
-
-File `render.yaml` udah include config lengkap.
-
-### Environment Variables di Render
-
-| Variable | Value | Keterangan |
-|----------|-------|------------|
-| `PYTHON_VERSION` | `3.11.0` | Python version |
-| `FLASK_ENV` | `production` | Wajib untuk HTTPS cookies |
-| `SECRET_KEY` | (auto-generate) | Secret key Flask |
-| `ADMIN_PASSWORD` | (strong password) | Jangan pakai default! |
 
 ---
 
@@ -277,78 +245,19 @@ mini-secure-web-if5161/
 
 ---
 
-## Penjelasan Kode Penting
-
-### Password Validation (app.py:145-172)
-```python
-def validate_password(password: str) -> tuple[bool, str]:
-    if len(password) < 8:
-        return False, "Password minimal 8 karakter."
-    if not re.search(r"[A-Z]", password):
-        return False, "Password harus mengandung minimal 1 huruf besar (A-Z)."
-    # ... validasi lainnya
-    return True, ""
-```
-
-### Session Timeout (app.py:55-87)
-```python
-@app.before_request
-def check_idle_timeout():
-    now = dt.datetime.now(WIB).replace(tzinfo=None)
-    last_active_str = session.get("last_active")
-    # ... cek idle duration
-    if idle_duration > timedelta(minutes=IDLE_TIMEOUT_MINUTES):
-        session.clear()
-        flash("Anda sudah logout karena tidak aktif lebih dari 5 menit.", "info")
-        return redirect(url_for("login"))
-```
-
-### File Upload Authorization (app.py:418-434)
-```python
-@app.route("/download/<int:file_id>")
-@login_required
-def download(file_id):
-    user = get_current_user()
-    user_file = UserFile.query.get_or_404(file_id)
-
-    # pemilik boleh download, admin boleh download semua
-    if (not user.is_admin) and (user_file.user_id != user.id):
-        abort(403)
-
-    # ... return file
-```
-
-### Rate Limiting Login (app.py:300-328)
-```python
-user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
-if user.failed_login_attempts >= 3:
-    # Exponential backoff: 5, 10, 20, 40 menit
-    extra_index = user.failed_login_attempts - 3
-    wait_minutes = 5 * (2 ** extra_index)
-    user.lock_until = now + dt.timedelta(minutes=wait_minutes)
-```
-
----
-
 ## Security Implementation Checklist
-
-Aplikasi ini udah cover semua requirement security dari assignment:
-
-- ✅ **Password hashing** pakai bcrypt (app.py:246-249, 290-293)
+- ✅ **Password hashing** menggunakan bcrypt (app.py:246-249, 290-293)
 - ✅ **CSRF protection** di semua form POST (app.py:49)
 - ✅ **Input validation** username & password dengan regex (app.py:124-172)
 - ✅ **File upload sanitization** dengan `secure_filename()` dan whitelist (app.py:393)
 - ✅ **Access control** dengan decorators & ownership check (app.py:181-198, 425-426)
 - ✅ **Gak ada hardcoded secrets** - pakai environment variables (app.py:32, 561-562)
-- ✅ **Password gak disimpan plain text** - selalu di-hash (app.py:246-249)
+- ✅ **Password tidak disimpan pada plain text** - selalu di-hash (app.py:246-249)
 - ✅ **Session secure** - cookie flags HttpOnly, Secure, SameSite (app.py:40-46)
 
 ---
 
-## Bonus Features
-
-Beberapa fitur tambahan yang diimplementasi:
-
+## Beberapa fitur tambahan yang diimplementasi:
 - **Strong password policy** dengan complexity requirement (min 8 char, huruf besar/kecil, angka, spesial)
 - **Username validation** pakai regex (harus dimulai huruf, alphanumeric + underscore)
 - **File size limit** 5MB (DoS prevention)
@@ -362,32 +271,17 @@ Beberapa fitur tambahan yang diimplementasi:
 
 ---
 
-## Production Tips
-
-Kalau mau deploy production:
-
-- **Wajib** ganti password admin (jangan `admin123`)
-- Set `SECRET_KEY` yang kuat & random (misal: `openssl rand -hex 32`)
-- Set `FLASK_ENV=production` biar cookie Secure aktif
-- Pakai HTTPS (Render free plan udah include SSL)
-- Free tier Render sleep setelah 15 menit idle (cold start ~30 detik)
-- Kalau butuh database persistent, pakai PostgreSQL (gratis di Render)
-
----
-
 ## Limitations
 
-- **SQLite (file-based)** → data ilang kalau redeploy di Render free tier
-  - Solusi: pakai Render PostgreSQL (gratis)
-- **Free tier Render** ada cold start ~30 detik kalau idle
-- **Admin tidak bisa upload file** (by design, admin cuma untuk monitoring)
-- **CAPTCHA sederhana** (math) → bisa di-upgrade pakai reCAPTCHA
+- **SQLite (file-based)**
+- **Admin tidak bisa upload file**
+- **CAPTCHA sederhana** (math)
 
 ---
 
 ## Troubleshooting
 
-**Q: Gak bisa login di localhost?**
+**Q: Tidak bisa login di localhost?**
 A: Set `FLASK_ENV=development` karena cookie Secure butuh HTTPS
 
 ```bash
@@ -398,8 +292,8 @@ $env:FLASK_ENV="development"
 export FLASK_ENV=development
 ```
 
-**Q: Admin password gak work?**
-A: Cek env variable `ADMIN_PASSWORD`. Kalau udah ada admin sebelumnya, hapus `app.db` dulu:
+**Q: Admin password not work?**
+A: Cek env variable `ADMIN_PASSWORD`. Kalau sudah ada admin sebelumnya, hapus `app.db` dulu:
 
 ```bash
 # Hapus database lama
@@ -413,46 +307,11 @@ python app.py
 **Q: File upload error?**
 A: Cek size file (max 5MB) dan tipe file (cuma txt, pdf, png, jpg, jpeg, gif)
 
-**Q: Deploy Render gagal?**
-A: Cek logs di Render dashboard. Pastikan semua env variable udah di-set
-
-**Q: Waktu upload gak sesuai?**
+**Q: Waktu upload tidak sesuai?**
 A: Aplikasi pakai timezone WIB (UTC+7). Kalau database dibuat sebelum implementasi timezone, hapus `app.db` dan recreate
 
-**Q: Kena rate limiting terus?**
+**Q: Terkena ratelimiting?**
 A: Tunggu cooldown selesai atau hapus `app.db` untuk reset counter (development only)
-
----
-
-## Development Notes
-
-### Jika Ingin Extend Aplikasi
-
-**Tambah tipe file baru:**
-```python
-# app.py:29
-ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif", "docx", "xlsx"}
-```
-
-**Ubah session timeout:**
-```python
-# app.py:53
-IDLE_TIMEOUT_MINUTES = 10  # ganti dari 5 ke 10 menit
-```
-
-**Ubah file size limit:**
-```python
-# app.py:38
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB
-```
-
-**Tambah field di UserFile:**
-```python
-# app.py - tambah column baru di class UserFile
-file_size = db.Column(db.Integer)  # dalam bytes
-
-# Jangan lupa hapus app.db dan recreate
-```
 
 ---
 
@@ -501,7 +360,6 @@ Akses /download/<file_id_dari_user_A>
 - [Flask-WTF CSRF Protection](https://flask-wtf.readthedocs.io/en/stable/csrf.html)
 - [bcrypt Password Hashing](https://pypi.org/project/bcrypt/)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [Render Deployment Guide](https://render.com/docs)
 
 ---
 
@@ -514,8 +372,8 @@ Project ini dibuat untuk keperluan pembelajaran web security & backend developme
 **Developed by:**
 - Jefry Antoni - 23524020
 - Alit Kesatria Mendala - 23524027
-- hamas fakhrurrozi - 23524032
+- Hamas Fakhrurrozi - 23524032
 
 **Course:** IF5161 - Data & Software Security
 **Institution:** Institut Teknologi Bandung
-**Year:** 2024/2025
+**Year:** 2025
