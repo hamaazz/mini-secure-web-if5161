@@ -27,7 +27,6 @@ Fokus utama dari proyek ini adalah bagaimana praktik keamanan yang direkomendasi
 - **Session Management**
   - Auto-logout jika tidak ada aktivitas 5 menit
   - Cookie secure: HttpOnly, Secure (HTTPS), SameSite=Lax
-  - Timezone WIB (UTC+7) untuk timestamp
 - **Login Protection**
   - CAPTCHA (math sederhana)
   - Rate limiting: salah 3x login → cooldown 5 menit, eksponensial (5, 10, 20 menit)
