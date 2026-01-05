@@ -109,7 +109,6 @@ Admin punya akses khusus:
 - **Security:** bcrypt 4.1.2, Flask-WTF 1.2.1 (CSRF)
 - **Frontend:** Bootstrap 5, DataTables.js, SweetAlert2
 - **Deployment:** Gunicorn 21.2.0
-- **Timezone:** WIB (UTC+7) via Python datetime
 
 ---
 
@@ -198,10 +197,6 @@ Buka browser: **http://127.0.0.1:5000**
 2. Logout, login user B
 3. Coba akses file user A via URL → error 403 Forbidden
 
-### Test Timezone
-1. Upload file dan cek "Waktu Upload"
-2. Harusnya muncul waktu WIB (UTC+7), bukan UTC
-
 ---
 
 ## Struktur Folder
@@ -250,21 +245,20 @@ mini-secure-web-if5161/
 - ✅ **Input validation** username & password dengan regex (app.py:124-172)
 - ✅ **File upload sanitization** dengan `secure_filename()` dan whitelist (app.py:393)
 - ✅ **Access control** dengan decorators & ownership check (app.py:181-198, 425-426)
-- ✅ **Gak ada hardcoded secrets** - pakai environment variables (app.py:32, 561-562)
+- ✅ **Tidak ada hardcoded secrets** - pakai environment variables (app.py:32, 561-562)
 - ✅ **Password tidak disimpan pada plain text** - selalu di-hash (app.py:246-249)
 - ✅ **Session secure** - cookie flags HttpOnly, Secure, SameSite (app.py:40-46)
 
 ---
 
-## Beberapa fitur tambahan yang diimplementasi:
+## Beberapa fitur lain yang diimplementasi:
 - **Strong password policy** dengan complexity requirement (min 8 char, huruf besar/kecil, angka, spesial)
 - **Username validation** pakai regex (harus dimulai huruf, alphanumeric + underscore)
 - **File size limit** 5MB (DoS prevention)
 - **Login rate limiting** dengan exponential backoff (brute force prevention)
 - **Session timeout** 5 menit idle (reduce hijacking risk)
-- **CAPTCHA** math sederhana (anti bot)
+- **CAPTCHA** perhitungan matematika sederhana
 - **Admin panel** untuk user management & file monitoring
-- **Timezone WIB** untuk timestamp yang akurat (UTC+7)
 - **Per-user file isolation** di folder terpisah
 - **Unique filename** dengan UUID (collision prevention)
 
@@ -273,14 +267,14 @@ mini-secure-web-if5161/
 ## Limitations
 
 - **SQLite (file-based)**
-- **Admin tidak bisa upload file**
+- **Admin tidak dapat melakukan upload file**
 - **CAPTCHA sederhana** (math)
 
 ---
 
 ## Troubleshooting
 
-**Q: Tidak bisa login di localhost?**
+**Q: Tidak dapat login di localhost?**
 A: Set `FLASK_ENV=development` karena cookie Secure butuh HTTPS
 
 ```bash
@@ -305,9 +299,6 @@ python app.py
 
 **Q: File upload error?**
 A: Cek size file (max 5MB) dan tipe file (cuma txt, pdf, png, jpg, jpeg, gif)
-
-**Q: Waktu upload tidak sesuai?**
-A: Aplikasi pakai timezone WIB (UTC+7). Kalau database dibuat sebelum implementasi timezone, hapus `app.db` dan recreate
 
 **Q: Terkena ratelimiting?**
 A: Tunggu cooldown selesai atau hapus `app.db` untuk reset counter (development only)
@@ -334,13 +325,13 @@ Deskripsi file: <script>alert('XSS')</script>
 **3. Test Path Traversal:**
 ```
 Upload file dengan nama: ../../etc/passwd
-→ Seharusnya di-sanitize oleh secure_filename()
+→ Seharusnya dapat di-sanitize oleh secure_filename()
 ```
 
 **4. Test CSRF:**
 ```
 Buat form POST dari domain lain tanpa CSRF token
-→ Seharusnya ditolak (403 Forbidden)
+→ Output yang diharapkan 403 Forbidden
 ```
 
 **5. Test Authorization:**
@@ -348,7 +339,7 @@ Buat form POST dari domain lain tanpa CSRF token
 Login user A, ambil file_id
 Logout, login user B
 Akses /download/<file_id_dari_user_A>
-→ Seharusnya 403 Forbidden
+→ Output yang diharapkan 403 Forbidden
 ```
 
 ---
@@ -364,7 +355,7 @@ Akses /download/<file_id_dari_user_A>
 
 ## License
 
-Project ini dibuat untuk keperluan pembelajaran web security & backend development sebagai tugas mata kuliah Data & Software Security (IF5161).
+Project ini dibuat untuk keperluan pembelajaran serta sebagai tugas mata kuliah Data & Software Security (IF5161).
 
 ---
 
