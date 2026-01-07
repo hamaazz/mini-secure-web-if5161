@@ -14,14 +14,14 @@ from flask import (
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 
-# ===== TAMBAHAN BARU: Import Flask-WTF untuk CSRF =====
+# ===== Import Flask-WTF untuk CSRF =====
 from flask_wtf.csrf import CSRFProtect
 
 # --- Timezone Configuration ---
 # WIB (Waktu Indonesia Barat) = UTC+7
 WIB = timezone(timedelta(hours=7))
 
-# --- Konfigurasi dasar ---
+# --- Konfig dasar ---
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -45,7 +45,7 @@ app.config["SESSION_COOKIE_SECURE"] = not IS_DEVELOPMENT  # False di dev, True d
 app.config["SESSION_COOKIE_HTTPONLY"] = True              # Cookie tidak bisa diakses JavaScript (XSS protection)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"             # CSRF protection (Lax/Strict)
 
-# ===== TAMBAHAN BARU: Enable CSRF Protection =====
+# ===== Enable CSRF Protection =====
 csrf = CSRFProtect(app)
 
 # --- Session timeout (auto logout setelah idle 5 menit) ---
@@ -70,12 +70,12 @@ def check_idle_timeout():
         try:
             last_active = dt.datetime.fromisoformat(last_active_str)
         except ValueError:
-            # Kalau format aneh, anggap sekarang
+            # las_active tidak valid, set ke sekarang
             last_active = now
 
         idle_duration = now - last_active
         if idle_duration > timedelta(minutes=IDLE_TIMEOUT_MINUTES):
-            # Session kadaluarsa karena idle terlalu lama
+            # Session timeout karena idle terlalu lama
             session.clear()
             flash(
                 "Anda sudah logout karena tidak aktif lebih dari 5 menit.",
@@ -541,7 +541,7 @@ def request_entity_too_large(error):
 
 # --- Helper Functions ---
 
-#Tambah fungsi helper generate captcha
+# fungsi helper generate captcha
 def generate_captcha(key_prefix: str) -> str:
     """Generate captcha sederhana dan simpan jawabannya di session."""
     a = random.randint(1, 9)

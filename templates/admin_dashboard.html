@@ -56,7 +56,7 @@
                     action="{{ url_for('admin_delete_user', user_id=u.id) }}"
                     style="display:inline"
                     class="delete-user-form">
-                <!-- ===== TAMBAHAN BARU: CSRF Token ===== -->
+                <!-- ===== CSRF Token ===== -->
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 
                 <button type="submit"
@@ -113,7 +113,7 @@
                     action="{{ url_for('delete_file', file_id=f.id) }}"
                     style="display:inline"
                     class="delete-file-form">
-                <!-- ===== TAMBAHAN BARU: CSRF Token ===== -->
+                <!-- ===== CSRF Token ===== -->
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 
                 <button type="submit"
